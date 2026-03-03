@@ -13,6 +13,11 @@ pub struct EdKeyPair {
     pub verifying_key_bytes: [u8; 32],
     /// Key ID from config, e.g. "key-2025-01".
     pub kid: String,
+    /// Raw Ed25519 signing key — used for HTTP Signatures on outgoing AP requests.
+    pub signing_key: SigningKey,
+    /// PKCS#8 SubjectPublicKeyInfo PEM of the verifying key.
+    /// Included in the Actor document's `publicKey.publicKeyPem` field.
+    pub public_key_pem: String,
 }
 
 /// Load an Ed25519 PKCS#8 private key from a PEM file and derive the keypair.
@@ -55,6 +60,8 @@ pub fn load_ed_keypair_from_pem(
         decoding_key,
         verifying_key_bytes,
         kid: kid.into(),
+        signing_key,
+        public_key_pem: public_pem,
     })
 }
 
