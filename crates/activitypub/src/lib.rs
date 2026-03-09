@@ -236,6 +236,41 @@ impl Activity {
             published: Some(utc_now_rfc3339()),
         }
     }
+
+    /// Build an Update{Person} activity for profile propagation.
+    pub fn update_person(
+        actor_url: &str,
+        username: &str,
+        display_name: Option<&str>,
+        avatar_url: Option<&str>,
+    ) -> Self {
+        let mut person = serde_json::json!({
+            "type": "Person",
+            "id": actor_url,
+            "preferredUsername": username,
+        });
+        if let Some(name) = display_name {
+            person["name"] = Value::String(name.to_string());
+        }
+        if let Some(url) = avatar_url {
+            person["icon"] = serde_json::json!({
+                "type": "Image",
+                "url": url,
+            });
+        }
+
+        let activity_id = format!("{}/updates/{}", actor_url, uuid::Uuid::new_v4());
+        Self {
+            context: as_context(),
+            id: activity_id,
+            activity_type: "Update".to_string(),
+            actor: actor_url.to_string(),
+            object: person,
+            to: Some(vec!["https://www.w3.org/ns/activitystreams#Public".to_string()]),
+            cc: None,
+            published: Some(utc_now_rfc3339()),
+        }
+    }
 }
 
 // ─── Note (Direct Message) ────────────────────────────────────────────────────
