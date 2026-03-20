@@ -178,6 +178,9 @@ pub struct Activity {
     pub cc: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub published: Option<String>,
+    /// Used by `Like` activities to carry the emoji.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content: Option<String>,
 }
 
 impl Activity {
@@ -192,6 +195,7 @@ impl Activity {
             to: Some(vec![target_actor_url.to_string()]),
             cc: None,
             published: Some(utc_now_rfc3339()),
+            content: None,
         }
     }
 
@@ -206,6 +210,7 @@ impl Activity {
             to: None,
             cc: None,
             published: Some(utc_now_rfc3339()),
+            content: None,
         }
     }
 
@@ -220,6 +225,7 @@ impl Activity {
             to: None,
             cc: None,
             published: Some(utc_now_rfc3339()),
+            content: None,
         }
     }
 
@@ -234,6 +240,7 @@ impl Activity {
             to: None,
             cc: None,
             published: Some(utc_now_rfc3339()),
+            content: None,
         }
     }
 
@@ -269,6 +276,37 @@ impl Activity {
             to: Some(vec!["https://www.w3.org/ns/activitystreams#Public".to_string()]),
             cc: None,
             published: Some(utc_now_rfc3339()),
+            content: None,
+        }
+    }
+
+    /// Build a `Like` activity (reaction). The emoji is carried in `content`.
+    pub fn like(activity_id: &str, actor_url: &str, object_uri: &str, emoji: &str) -> Self {
+        Self {
+            context: as_context(),
+            id: activity_id.to_string(),
+            activity_type: "Like".to_string(),
+            actor: actor_url.to_string(),
+            object: Value::String(object_uri.to_string()),
+            to: None,
+            cc: None,
+            published: Some(utc_now_rfc3339()),
+            content: Some(emoji.to_string()),
+        }
+    }
+
+    /// Build an `Undo{Like}` activity (remove reaction).
+    pub fn undo_like(activity_id: &str, actor_url: &str, like_activity: Value) -> Self {
+        Self {
+            context: as_context(),
+            id: activity_id.to_string(),
+            activity_type: "Undo".to_string(),
+            actor: actor_url.to_string(),
+            object: like_activity,
+            to: None,
+            cc: None,
+            published: Some(utc_now_rfc3339()),
+            content: None,
         }
     }
 }
@@ -293,6 +331,9 @@ pub struct Note {
     /// Set to `true` to mark as a direct message (Mastodon-compatible extension).
     #[serde(default)]
     pub direct_message: bool,
+    /// ActivityPub `inReplyTo` — points to the parent message's activity URI.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub in_reply_to: Option<String>,
 }
 
 impl Note {
@@ -312,7 +353,21 @@ impl Note {
             to: vec![recipient_actor_url.to_string()],
             cc: vec![],
             direct_message: true,
+            in_reply_to: None,
         }
+    }
+
+    /// Build a direct message Note that is a reply to another message.
+    pub fn direct_reply(
+        note_id: &str,
+        sender_actor_url: &str,
+        recipient_actor_url: &str,
+        content: &str,
+        in_reply_to: &str,
+    ) -> Self {
+        let mut note = Self::direct(note_id, sender_actor_url, recipient_actor_url, content);
+        note.in_reply_to = Some(in_reply_to.to_string());
+        note
     }
 }
 
@@ -332,6 +387,7 @@ pub fn create_note_activity(
         to: Some(vec![recipient_actor_url.to_string()]),
         cc: None,
         published: Some(utc_now_rfc3339()),
+        content: None,
     }
 }
 
